@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Resolución de Sistemas - LU</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.container {
+    background: white;
+    width: 80%;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0px 10px 25px rgba(0,0,0,0.2);
+}
+
+h1 {
+    color: #333;
+}
+
+h3 {
+    margin-top: 20px;
+}
+
+select, button, input {
+    padding: 8px;
+    margin: 5px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background: #4facfe;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #007bff;
+}
+
+.matrix {
+    display: inline-block;
+    margin-top: 10px;
+}
+
+input {
+    width: 50px;
+    text-align: center;
+}
+
+.resultado {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #007bff;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h1>Resolución de Sistemas</h1>
+<p>Métodos: Doolittle, Crout, Cholesky</p>
+
+<label><b>Tamaño:</b></label>
+<select id="n">
+<option>2</option>
+<option selected>3</option>
+<option>4</option>
+<option>5</option>
+<option>6</option>
+</select>
+
+<button onclick="crear()">Crear Matriz</button>
+
+<h3>Matriz A</h3>
+<div id="matriz" class="matrix"></div>
+
+<h3>Vector B</h3>
+<div id="vector" class="matrix"></div>
+
+<br>
+
+<label><b>Método:</b></label>
+<select id="metodo">
+<option value="doolittle">Doolittle</option>
+<option value="crout">Crout</option>
+<option value="cholesky">Cholesky</option>
+</select>
+
+<br><br>
+<button onclick="resolver()">Resolver</button>
+
+<div class="resultado" id="resultado"></div>
+
+</div>
+
+<script>
+
+function crear(){
+let n = parseInt(document.getElementById("n").value);
+let matriz = "";
+let vector = "";
+
+for(let i=0;i<n;i++){
+    for(let j=0;j<n;j++){
+        matriz += `<input id="a${i}${j}" type="number">`;
+    }
+    matriz += "<br>";
+    vector += `<input id="b${i}" type="number"><br>`;
+}
+
+document.getElementById("matriz").innerHTML = matriz;
+document.getElementById("vector").innerHTML = vector;
+}
+
+function getA(n){
+let A=[];
+for(let i=0;i<n;i++){
+    let fila=[];
+    for(let j=0;j<n;j++){
+        fila.push(parseFloat(document.getElementById(`a${i}${j}`).value));
+    }
+    A.push(fila);
+}
+return A;
+}
+
+function getB(n){
+let B=[];
+for(let i=0;i<n;i++){
+    B.push(parseFloat(document.getElementById(`b${i}`).value));
+}
+return B;
+}
+
+function doolittle(A){
+let n=A.length;
+let L=Array.from({length:n},()=>Array(n).fill(0));
+let U=Array.from({length:n},()=>Array(n).fill(0));
+
+for(let i=0;i<n;i++){
+    L[i][i]=1;
+    for(let j=i;j<n;j++){
+        let sum=0;
+        for(let k=0;k<i;k++) sum+=L[i][k]*U[k][j];
+        U[i][j]=A[i][j]-sum;
+    }
+    for(let j=i+1;j<n;j++){
+        let sum=0;
+        for(let k=0;k<i;k++) sum+=L[j][k]*U[k][i];
+        L[j][i]=(A[j][i]-sum)/U[i][i];
+    }
+}
+return {L,U};
+}
+
+function crout(A){
+let n=A.length;
+let L=Array.from({length:n},()=>Array(n).fill(0));
+let U=Array.from({length:n},()=>Array(n).fill(0));
+
+for(let j=0;j<n;j++){
+    U[j][j]=1;
+    for(let i=j;i<n;i++){
+        let sum=0;
+        for(let k=0;k<j;k++) sum+=L[i][k]*U[k][j];
+        L[i][j]=A[i][j]-sum;
+    }
+    for(let i=j+1;i<n;i++){
+        let sum=0;
+        for(let k=0;k<j;k++) sum+=L[j][k]*U[k][i];
+        U[j][i]=(A[j][i]-sum)/L[j][j];
+    }
+}
+return {L,U};
+}
+
+function cholesky(A){
+let n=A.length;
+let L=Array.from({length:n},()=>Array(n).fill(0));
+
+for(let i=0;i<n;i++){
+    for(let j=0;j<=i;j++){
+        let sum=0;
+        for(let k=0;k<j;k++) sum+=L[i][k]*L[j][k];
+
+        if(i==j){
+            L[i][j]=Math.sqrt(A[i][i]-sum);
+        }else{
+            L[i][j]=(A[i][j]-sum)/L[j][j];
+        }
+    }
+}
+return {L, U:transpose(L)};
+}
+
+function transpose(M){
+return M[0].map((_,i)=>M.map(r=>r[i]));
+}
+
+function resolverSistema(L,U,B){
+let n=L.length;
+let y=Array(n).fill(0);
+let x=Array(n).fill(0);
+
+for(let i=0;i<n;i++){
+    let sum=0;
+    for(let j=0;j<i;j++) sum+=L[i][j]*y[j];
+    y[i]=B[i]-sum;
+}
+
+for(let i=n-1;i>=0;i--){
+    let sum=0;
+    for(let j=i+1;j<n;j++) sum+=U[i][j]*x[j];
+    x[i]=(y[i]-sum)/U[i][i];
+}
+
+return x;
+}
+
+function resolver(){
+let n=parseInt(document.getElementById("n").value);
+let A=getA(n);
+let B=getB(n);
+let metodo=document.getElementById("metodo").value;
+
+let LU;
+
+if(metodo=="doolittle") LU=doolittle(A);
+else if(metodo=="crout") LU=crout(A);
+else LU=cholesky(A);
+
+let x=resolverSistema(LU.L,LU.U,B);
+
+document.getElementById("resultado").innerText = "Solución: " + x.join(", ");
+}
+
+</script>
+
+</body>
+</html>
